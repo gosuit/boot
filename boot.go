@@ -52,8 +52,8 @@ func getBootType(fnType, gType, nType reflect.Type) (reflect.Type, int) {
 	for i := range fnType.NumIn() {
 		argType := fnType.In(i)
 
-		if argType == nType {
-			in[i] = gType
+		if argType == nType || (argType.Kind() == reflect.Pointer && argType.Elem() == nType) {
+			in[i] = reflect.PointerTo(gType)
 			flag = true
 			gTypeIndex = i
 		} else {
@@ -76,13 +76,19 @@ func getBootType(fnType, gType, nType reflect.Type) (reflect.Type, int) {
 
 func getBootWrap(fn reflect.Value, nType reflect.Type, gTypeIndex int) wrapper {
 	return func(args []reflect.Value) []reflect.Value {
-		g := args[gTypeIndex]
+		g := args[gTypeIndex].Elem()
 		n, ok := extractN(g, nType)
 		if !ok {
 			panic("gosuit: can`t extract N from G")
 		}
 
-		args[gTypeIndex] = n
+		isPointer := fn.Type().In(gTypeIndex).Kind() == reflect.Pointer
+
+		if isPointer {
+			args[gTypeIndex] = n.Addr()
+		} else {
+			args[gTypeIndex] = n
+		}
 
 		return fn.Call(args)
 	}
@@ -94,6 +100,8 @@ func extractN(g reflect.Value, nType reflect.Type) (reflect.Value, bool) {
 
 		if field.Type() == nType {
 			return field, true
+		} else if field.Kind() == reflect.Pointer && field.Type().Elem() == nType {
+			return field.Elem(), true
 		}
 
 		if field.Kind() == reflect.Struct {
