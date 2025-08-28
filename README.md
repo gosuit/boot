@@ -12,6 +12,22 @@ go get github.com/gosuit/boot
 
 ## Usage
 
+Boot contains one function, let's examine its signature:
+
+```golang
+func Boot[G, N any](fn any) any 
+```
+
+G - the type of the global config (a structure, not a pointer) from which you need to extract the required value.
+
+N - the type of config (a structure, not a pointer) that needs to be extracted.
+
+fn - the constructor that takes N (or a pointer to N) and other modules.
+
+The return value of the Boot function is a new constructor that has the same signature as fn, except that instead of N (or a pointer to N), it takes a pointer to G. This new constructor will extract N (or a pointer to N) from G and create the required module using fn.
+
+Let's look at an example:
+
 ```golang
 package module
 
@@ -47,7 +63,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/gosuit/boot/main/module"
+	"main/module"
 	"go.uber.org/fx"
 )
 
@@ -73,8 +89,6 @@ func NewConfig() *AppConfig {
 	}
 }
 ```
-
-### Module injection
 
 ## Contributing
 
